@@ -1,55 +1,55 @@
-#include <SPI.h>        
-#include <Ethernet.h>
-#include <EthernetUdp.h>        
+#include <EtherCard.h>
+#include <IPAddress.h>
 
-// Enter a MAC address and IP address for your controller below.
-// The IP address will be dependent on your local network:
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ip(192, 168, 1, 20);
+#define STATIC 1  // set to 1 to disable DHCP (adjust myip/gwip values below)
 
-unsigned int localPort = 8888;      // local port to listen on
+#if STATIC
+// Ethernet interface IP address
+static byte myip[] = { 192,168,1,20 };
+// Gateway IP address
+static byte gwip[] = { 192,168,5,50 };
+#endif
 
-// buffers for receiving and sending data
-char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  //buffer to hold incoming packet,
-char  ReplyBuffer[] = "Packet received";       // a string to send back
+// Ethernet MAC address - must be unique on your network
+static byte mymac[] = { 0x70,0x69,0x69,0x2D,0x30,0x31 };
 
-// An EthernetUDP instance to let us send and receive packets over UDP
-EthernetUDP Udp;
+byte Ethernet::buffer[500]; // TCP/IP send and receive buffer
 
-void setup() {
-  // start the Ethernet and UDP:
-  Ethernet.begin(mac, ip);
-  Udp.begin(localPort);
+char data[] = "Hey There!";
+const int dstPort PROGMEM = 1234;
+const int srcPort PROGMEM = 1234;
 
-  Serial.begin(9600);
+
+//Sending data to destination address
+void sendPacketToDest() {
+ static byte destip[] = { 192,168,1,50 };
+  ether.sendUdp(data, sizeof(data), srcPort, destip, dstPort );
+  Serial.println("Packet sent");
+ }
+
+void setup(){
+  Serial.begin(57600);
+  
+
+  if (ether.begin(sizeof Ethernet::buffer, mymac) == 0)
+    Serial.println(F("Failed to access Ethernet controller"));
+#if STATIC
+  ether.staticSetup(myip, gwip);
+  Serial.println(F("Connected to ENC28j60"));
+#else
+  if (!ether.dhcpSetup())
+    Serial.println(F("DHCP failed"));
+#endif
+
+  ether.printIp("IP:  ", ether.myip);
+  ether.printIp("GW:  ", ether.gwip);
+  ether.printIp("DNS: ", ether.dnsip);
+  
 }
 
-void loop() {
-  // if there's data available, read a packet
-  int packetSize = Udp.parsePacket();
-  if (packetSize) {
-    Serial.print("Received packet of size ");
-    Serial.println(packetSize);
-    Serial.print("From ");
-    IPAddress remote = Udp.remoteIP();
-    for (int i = 0; i < 4; i++) {
-      Serial.print(remote[i], DEC);
-      if (i < 3) {
-        Serial.print(".");
-      }
-    }
-    Serial.print(", port ");
-    Serial.println(Udp.remotePort());
 
-    // read the packet into packetBufffer
-    Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-    Serial.println("Contents:");
-    Serial.println(packetBuffer);
-
-    // send a reply to the IP address and port that sent us the packet we received
-    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write(ReplyBuffer);
-    Udp.endPacket();
-  }
-  delay(10);
+void loop(){
+  // This must be called for ethercard functions to work.
+  ether.packetLoop(ether.packetReceive());
+  sendPacketToDest();
 }

@@ -23,13 +23,6 @@ void loop() {
   // Check if a UDP packet has been received
   int packetSize = udp.parsePacket();
   
-//  Serial.print("Remote port: ");
-//  Serial.println(udp.remotePort());
-//
-//  Serial.print("Remote IP: ");
-//  IPAddress remote = udp.remoteIP();
-//  Serial.println(remote);
-  
   if (packetSize) {
     Serial.println("Packet received!");
 

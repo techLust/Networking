@@ -2,6 +2,9 @@
 // 2011-01-30 <jc@wippler.nl> http://opensource.org/licenses/mit-license.php
  
 #include <EtherCard.h>
+#include <SPI.h>
+//#include <Ethernet.h>
+//#include <EthernetUdp.h>
 
 #define STATIC 1  // set to 1 to disable DHCP (adjust myip/gwip values below)
 
